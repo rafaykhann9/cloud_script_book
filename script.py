@@ -567,7 +567,7 @@ def main():
 
                                 
         print("✅ Script finished — browser will stay open until you press Enter.")
-        input("Press Enter here to close the browser...")
+        ##input("Press Enter here to close the browser...")
 
     finally:
         cookies = driver.get_cookies()
