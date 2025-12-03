@@ -5,14 +5,13 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver import ActionChains
-from selenium.common.exceptions import StaleElementReferenceException
-from selenium.common.exceptions import TimeoutException
-from datetime import datetime , timedelta
+from selenium.common.exceptions import StaleElementReferenceException, TimeoutException
+from datetime import datetime, timedelta
 from selenium.webdriver.chrome.options import Options
 from dotenv import load_dotenv
 import json
 
-# load credentials from .env
+# load credentials from .env (works locally)
 load_dotenv()
 USERNAME = os.getenv("ZHS_USER")
 PASSWORD = os.getenv("ZHS_PASS")
@@ -20,23 +19,19 @@ STREET = os.getenv("STREET")
 STREET_NUMBER = os.getenv("STREET_NUMBER")
 POSTAL_CODE = os.getenv("POSTAL_CODE")
 CITY = os.getenv("CITY")
-BIRTHDATE = os.getenv("BIRTHDATE") 
+BIRTHDATE = os.getenv("BIRTHDATE")
 
-
-
-# course url (your provided link)
 COURSE_URL = "https://kurse.zhs-muenchen.de/de/product-offers/37019bf0-24df-4b56-8c6d-2423ea83d30a"
 
-# configure webdriver (change options as needed)
-options = webdriver.ChromeOptions()
-# options.add_argument("--headless=new")   # enable if you want headless
-options.add_argument("--headless")
+options = Options()
+options.add_argument("--headless")  # headless mode for GitHub runner
 options.add_argument("--no-sandbox")
 options.add_argument("--disable-dev-shm-usage")
 
-
-driver = webdriver.Chrome(options=options)  # or pass executable_path if needed
+# Selenium Manager will fetch the right driver automatically
+driver = webdriver.Chrome(options=options)
 wait = WebDriverWait(driver, 20)
+
 import time
 from selenium.webdriver.common.keys import Keys
 
@@ -567,7 +562,7 @@ def main():
 
                                 
         print("✅ Script finished — browser will stay open until you press Enter.")
-        ##input("Press Enter here to close the browser...")
+        #input("Press Enter here to close the browser...")
 
     finally:
         cookies = driver.get_cookies()
