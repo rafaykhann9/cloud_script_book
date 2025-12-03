@@ -108,7 +108,8 @@ def main():
     
     if not valid :
         #exit the script if today is not the booking day
-        quit_msg = input("Today is not a booking day or the time has passed. Press Enter to exit...")
+        #quit_msg = input("Today is not a booking day or the time has passed. Press Enter to exit...")
+        print("Today is not a booking day or the time has passed. Exiting...")
         driver.quit()
         return
     # Calculate sleep time until 2 seconds before bk_time
