@@ -1,0 +1,47 @@
+name: Run Selenium Script
+
+on:
+  schedule:
+    # Saturday 21:25 UTC
+    - cron: "25 21 * * 6"
+    # Sunday 19:55 UTC
+    - cron: "55 19 * * 0"
+  workflow_dispatch:   # manual trigger
+
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Install Chrome & Chromedriver
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
+          CHROME_VERSION=$(google-chrome --version | awk '{print $3}')
+          wget https://chromedriver.storage.googleapis.com/114.0.5735.90/chromedriver_linux64.zip
+          unzip chromedriver_linux64.zip
+          sudo mv chromedriver /usr/local/bin/
+
+      - name: Run script
+        env:
+          ZHS_USER: ${{ secrets.ZHS_USER }}
+          ZHS_PASS: ${{ secrets.ZHS_PASS }}
+          CHOICE: ${{ secrets.CHOICE }}
+          STREET: ${{ secrets.STREET }}
+          STREET_NUMBER: ${{ secrets.STREET_NUMBER }}
+          POSTAL_CODE: ${{ secrets.POSTAL_CODE }}
+          CITY: ${{ secrets.CITY }}
+          BIRTHDATE: ${{ secrets.BIRTHDATE }}
+
+        run: python script.py
