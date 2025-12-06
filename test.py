@@ -44,12 +44,12 @@ def is_five_days_later_target_day():
     if weekday in [3, 4, 5]:  # Thursday, Friday, Saturday
         formatted_date = f"{target_date.day}-{target_date.month}-{target_date.year}"
         print(f"Today is booking day: {formatted_date} for the day {target_date.day}")
-        if weekday == 3:
-            bk_time = datetime.strptime(os.getenv("Thrs_time"), "%H:%M").time()
-        elif weekday == 4:
-            bk_time = datetime.strptime(os.getenv("Fri_time"), "%H:%M").time()
-        elif weekday == 5:
-            bk_time = datetime.strptime(os.getenv("Sat_time"), "%H:%M").time()    
+        time_key = {3: "Thrs_time", 4: "Fri_time", 5: "Sat_time"}[weekday]
+        time_val = os.getenv(time_key)
+        if not time_val:
+            raise ValueError(f"Missing env var {time_key}. Add it to .env as HH:MM (e.g. 07:59).")
+        bk_time = datetime.strptime(time_val, "%H:%M").time()
+        
         chose = weekday - 3
         CHOICE_ARRAY = os.getenv("CHOICE", "").split(",")  # Assumes comma-separated values in .env
         CHOICE = CHOICE_ARRAY[chose].strip() if chose < len(CHOICE_ARRAY) else None
