@@ -187,16 +187,6 @@ def main():
         now = datetime.now()
         target_datetime = datetime.combine(now.date(), bk_time)
         
-        if target_datetime > now:
-            sleep_seconds = (target_datetime - now).total_seconds()
-            print(f"⏰ Waiting until {target_datetime.strftime('%H:%M:%S')} (sleeping for {sleep_seconds:.1f} seconds)...")
-            time.sleep(max(0.0, sleep_seconds - 0.2))
-            while datetime.now() < target_datetime:
-                pass
-            print("✅ Sleep complete, proceeding with booking...")
-        else:
-            print(f"⚠️ Target time {bk_time} has already passed or is within 2 seconds. Proceeding immediately...")
-        
         max_attempts = 3
         for attempt in range(1, max_attempts + 1):
             try:
