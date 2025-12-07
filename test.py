@@ -120,16 +120,42 @@ def main():
         driver.get("https://kurse.zhs-muenchen.de/")  # base page
 
         # 2) Wait & click "Login" if necessary
-        try:
-            login_link = WebDriverWait(driver, 10).until(
-                EC.element_to_be_clickable((By.XPATH, "//a[contains(@href, '/auth/login')]"))
-            )
-            login_link.click()
-            print("✅ Clicked the 'Login' button successfully.")
-        except Exception:
-            print("⚠️ Login link not found or clickable, assuming already on login page.")
-            # Sometimes there is a login form directly; continue
-            pass
+        max_attempts = 3
+        for attempt in range(1, max_attempts + 1):
+            try:
+            # First, wait for page to load
+                
+                
+                # Debug: Print page title and check current URL
+                print(f"Current URL: {driver.current_url}")
+                print(f"Page title: {driver.title}")
+                
+                # Try to find all links first
+                all_links = driver.find_elements(By.TAG_NAME, "a")
+                print(f"Total links on page: {len(all_links)}")
+                
+                # Look for login links
+                login_links = [link for link in all_links if '/auth/login' in link.get_attribute('href') if link.get_attribute('href')]
+                print(f"Found {len(login_links)} login links")
+                
+                if login_links:
+                    # Try to click the first one found
+                    login_link = login_links[0]
+                    print(f"Login link href: {login_link.get_attribute('href')}")
+                    
+                    driver.get(login_link.get_attribute('href'))
+                    break
+                else:
+                    print("No login links found.")
+                    break
+            except Exception as e:
+                print(f"⚠️ Login link not found or clickable, assuming already on login page. Error: {e}")
+                if attempt == max_attempts:
+                    print("❌ All attempts to click Login link failed.")
+                else:
+                    time.sleep(0.1)  # Wait before retrying
+                # Sometimes there is a login form directly; continue
+
         
         try:
             # Wait for the button with id="provider" and click it
@@ -168,16 +194,40 @@ def main():
             print("✅ Submitted the login form successfully.")
         except Exception as e:
             print(f"⚠️ Failed to click the login button: {e}")
-
-        try:
-        # Click the first image with id="poster-0"
-            poster_img = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.ID, "poster-0"))
-            )
-            poster_img.click()
-            print("✅ Clicked the first poster image.")
-        except Exception as e:
-            print(f"⚠️ Failed to click first poster image: {e}")
+        
+        max_attempts = 3
+        for attempt in range(1, max_attempts + 1):
+            try:
+            # Click the first image with id="poster-0"
+                poster_img = WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable((By.ID, "poster-0"))
+                )
+                driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", poster_img)
+                time.sleep(1)
+                
+                # Remove any overlays that might be intercepting the click
+                driver.execute_script("""
+                    var overlays = document.querySelectorAll('[role="dialog"], .modal, .overlay, .backdrop, [style*="position: fixed"]');
+                    overlays.forEach(el => {
+                        if (el.offsetParent !== null) {
+                            el.style.display = 'none';
+                        }
+                    });
+                """)
+                time.sleep(0.5)
+                
+                # Try to click using JavaScript to avoid interception
+                driver.execute_script("arguments[0].click();", poster_img)
+                print("✅ Clicked the first poster image via JavaScript.")
+                
+                # Wait for page to load after click
+                break
+            except Exception as e:
+                print(f"⚠️ Failed to click first poster image: {e}")
+                if attempt == max_attempts:
+                    print("❌ All attempts to click poster image failed.")
+                else:
+                    time.sleep(0.1)  # Wait before retrying
 
         # Optional: wait for navigation or content to load
             time.sleep(2)
@@ -556,10 +606,10 @@ def main():
         #input("Press Enter here to close the browser...")
 
     finally:
-        cookies = driver.get_cookies()
+        """ cookies = driver.get_cookies()
         with open("zhs_cookies.json", "w") as f:
             json.dump(cookies, f)
-        print("Saved cookies to zhs_cookies.json")
+        print("Saved cookies to zhs_cookies.json") """
         # Keep browser open for inspection if you want; otherwise quit:
         driver.quit() 
 
