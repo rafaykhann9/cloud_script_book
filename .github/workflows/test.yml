@@ -42,14 +42,14 @@ jobs:
         env:
           ZHS_USER: ${{ secrets.ZHS_USER }}
           ZHS_PASS: ${{ secrets.ZHS_PASS }}
-          CHOICE: ${{ secrets.CHOICE }}
+          CHOICE: 0,1,4
           STREET: ${{ secrets.STREET }}
-          Thrs_time: ${{ secrets.Thrs_time }}
-          Fri_time: ${{ secrets.Fri_time }}
-          Sat_time: ${{ secrets.Sat_time }}
+          Thrs_time: 21:30
+          Fri_time: 20:00
+          Sat_time: 09:00
           STREET_NUMBER: ${{ secrets.STREET_NUMBER }}
           POSTAL_CODE: ${{ secrets.POSTAL_CODE }}
-          CITY: ${{ secrets.CITY }}
+          CITY: Munich
           BIRTHDATE: ${{ secrets.BIRTHDATE }}
 
       - name: Run script
