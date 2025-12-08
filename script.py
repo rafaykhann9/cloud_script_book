@@ -606,12 +606,40 @@ def main():
                         print("❌ All attempts to click 'Book for a fee' button failed.")
                     else:
                         time.sleep(0.2)
+            
+            time.sleep(1)
+            success_url = "https://kurse.zhs-muenchen.de/booking/result-pages/success"
+            max_attempts = 3
+            for attempt in range(1, max_attempts + 1):
+                try:
+                    WebDriverWait(driver, 10).until(EC.url_contains("/booking/result-pages/success"))
+                    print(f"✅ Reached success page: {driver.current_url}")
+                    if driver.current_url.startswith(success_url):
+                        print("✅ Booking success confirmed.")
+                    else:
+                        print("ℹ️ Redirected but URL differs, current:", driver.current_url)
+
+                    # Check for the thank-you text on the success page
+                    try:
+                        WebDriverWait(driver, 5).until(
+                            EC.presence_of_element_located(
+                                (By.XPATH, "//font[contains(normalize-space(.), 'Thank you for your booking!')]")
+                            )
+                        )
+                        print("✅ Found confirmation text 'Thank you for your booking!'.")
+                    except TimeoutException:
+                        print("❌ Confirmation text not found on success page.")
+                except TimeoutException:
+                    print(f"❌ Did not reach success page within timeout. Current URL: {driver.current_url}")
+                    if attempt == max_attempts:
+                        print("❌ All attempts to reach success page failed.")
+                    else:
+                        time.sleep(0.2)
+            
+            
 
 
-    
-
-
-                                
+        time.sleep(2)                        
         print("✅ Script finished — browser will stay open until you press Enter.")
         #input("Press Enter here to close the browser...")
 
