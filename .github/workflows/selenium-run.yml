@@ -3,9 +3,11 @@ name: Run Selenium Script
 on:
   schedule:
     # Saturday 21:25 UTC
-    - cron: "25 21 * * 6"
+    - cron: "25 20 * * 6"
     # Sunday 19:55 UTC
-    - cron: "55 19 * * 0"
+    - cron: "55 18 * * 0"
+    # Monday 08:55 UTC
+    - cron: "55 07 * * 1"
   workflow_dispatch:   # manual trigger
 
 jobs:
@@ -32,16 +34,18 @@ jobs:
 
       - name: Run script
         env:
+          TZ: Europe/Berlin
           ZHS_USER: ${{ secrets.ZHS_USER }}
           ZHS_PASS: ${{ secrets.ZHS_PASS }}
-          CHOICE: ${{ secrets.CHOICE }}
-          Thrs_time: ${{ secrets.Thrs_time }}
-          Fri_time: ${{ secrets.Fri_time }}
-          Sat_time: ${{ secrets.Sat_time }}
+          CHOICE: 0,1,4
           STREET: ${{ secrets.STREET }}
+          Thrs_time: 21:30
+          Fri_time: 20:00
+          Sat_time: 09:00
           STREET_NUMBER: ${{ secrets.STREET_NUMBER }}
           POSTAL_CODE: ${{ secrets.POSTAL_CODE }}
-          CITY: ${{ secrets.CITY }}
+          CITY: Munich
           BIRTHDATE: ${{ secrets.BIRTHDATE }}
+
 
         run: python script.py

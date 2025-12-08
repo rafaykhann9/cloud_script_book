@@ -3,9 +3,11 @@ name: Run Test Script
 on:
   schedule:
     # Saturday 21:25 UTC
-    - cron: "00 21 * * 6"
+    - cron: "00 20 * * 6"
     # Sunday 19:55 UTC
-    - cron: "30 19 * * 0"
+    - cron: "30 18 * * 0"
+    # Monday 08:55 UTC
+    - cron: "30 07 * * 1"
   workflow_dispatch:   # manual trigger
 
 jobs:
@@ -29,32 +31,10 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y google-chrome-stable
-          
-      - name: Check env presence (debug)
-        run: |
-          python - <<'PY'
-          keys = ["ZHS_USER","ZHS_PASS","CHOICE","STREET","STREET_NUMBER","POSTAL_CODE","CITY","BIRTHDATE","Thrs_time","Fri_time","Sat_time"]
-          import os
-          for k in keys:
-              v = os.getenv(k)
-              print(f"{k}: set={v is not None}, len={len(v) if v else 0}")
-          PY
-        env:
-          ZHS_USER: ${{ secrets.ZHS_USER }}
-          ZHS_PASS: ${{ secrets.ZHS_PASS }}
-          CHOICE: 0,1,4
-          STREET: ${{ secrets.STREET }}
-          Thrs_time: 21:30
-          Fri_time: 20:00
-          Sat_time: 09:00
-          STREET_NUMBER: ${{ secrets.STREET_NUMBER }}
-          POSTAL_CODE: ${{ secrets.POSTAL_CODE }}
-          CITY: Munich
-          BIRTHDATE: ${{ secrets.BIRTHDATE }}
 
       - name: Run script
         env:
-
+          TZ: Europe/Berlin
           ZHS_USER: ${{ secrets.ZHS_USER }}
           ZHS_PASS: ${{ secrets.ZHS_PASS }}
           CHOICE: 0,1,4
