@@ -2,11 +2,11 @@ name: Run Selenium Script
 
 on:
   schedule:
-    # Saturday 21:25 UTC
+    # Saturday 21:15 UTC
     - cron: "25 20 * * 6"
-    # Sunday 19:55 UTC
+    # Sunday 19:45 UTC
     - cron: "55 18 * * 0"
-    # Monday 08:55 UTC
+    # Monday 08:45 UTC
     - cron: "55 07 * * 1"
   workflow_dispatch:   # manual trigger
 
