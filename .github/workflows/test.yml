@@ -2,8 +2,8 @@ name: Run Test Script
 
 on:
   schedule:
-    # Saturday 21:25 UTC
-    - cron: "00 20 * * 6"
+    # Thursday 21:25 UTC
+    - cron: "00 20 * * 4"
     # Sunday 19:55 UTC
     - cron: "30 18 * * 0"
     # Monday 08:55 UTC

@@ -24,9 +24,11 @@ BIRTHDATE = os.getenv("BIRTHDATE")
 COURSE_URL = "https://kurse.zhs-muenchen.de/de/product-offers/37019bf0-24df-4b56-8c6d-2423ea83d30a"
 
 options = Options()
-options.add_argument("--headless")  # headless mode for GitHub runner
+options.add_argument("--headless=new")  # modern headless mode for newer Chrome
 options.add_argument("--no-sandbox")
 options.add_argument("--disable-dev-shm-usage")
+options.add_argument("--disable-gpu")
+options.add_argument("--window-size=1920,1080")
 
 # Selenium Manager will fetch the right driver automatically
 driver = webdriver.Chrome(options=options)
@@ -41,10 +43,10 @@ def is_five_days_later_target_day():
     target_date = datetime.today() + timedelta(days=5)
     weekday = target_date.weekday()  # Monday=0, Sunday=6
 
-    if weekday in [3, 4, 5]:  # Thursday, Friday, Saturday
+    if weekday in [1, 4, 5]:  # Thursday, Friday, Saturday
         formatted_date = f"{target_date.day}-{target_date.month}-{target_date.year}"
         print(f"Today is booking day: {formatted_date} for the day {target_date.day}")
-        time_key = {3: "Thrs_time", 4: "Fri_time", 5: "Sat_time"}[weekday]
+        time_key = {1: "Thrs_time", 4: "Fri_time", 5: "Sat_time"}[weekday]
         time_val = os.getenv(time_key)
         if not time_val:
             raise ValueError(f"Missing env var {time_key}. Add it to .env as HH:MM (e.g. 07:59).")
@@ -158,14 +160,33 @@ def main():
 
         
         try:
-            # Wait for the button with id="provider" and click it
-            tum_login_button = WebDriverWait(driver, 10).until(
-                EC.element_to_be_clickable((By.ID, "provider"))
+            # Open the university-account dropdown
+            university_account_button = WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable(
+                    (
+                        By.XPATH,
+                        "//button[@data-melt-dropdown-menu-trigger and .//span[normalize-space()='Login with University Account']]",
+                    )
+                )
             )
-            tum_login_button.click()
-            print("✅ Clicked the 'Login with TUM account' button successfully.")
-        except Exception:
-            print("⚠️ TUM login button not found or not clickable.")
+            driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", university_account_button)
+            driver.execute_script("arguments[0].click();", university_account_button)
+            print("✅ Clicked the 'Login with University Account' button successfully.")
+
+            # Select the TUM provider from the opened dropdown
+            tum_provider_button = WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable(
+                    (
+                        By.CSS_SELECTOR,
+                        "button[type='submit'][form='login-form'][name='provider'][value='oidc-tum']",
+                    )
+                )
+            )
+            driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", tum_provider_button)
+            driver.execute_script("arguments[0].click();", tum_provider_button)
+            print("✅ Selected the TUM provider successfully.")
+        except Exception as e:
+            print(f"⚠️ University account login flow not found or not clickable: {e}")
 
         
         # Fill in username and password
@@ -255,7 +276,7 @@ def main():
                 else:
                     time.sleep(0.1)  # Wait before retrying
 
-        max_attempts = 3
+        """ max_attempts = 3
         for attempt in range(1, max_attempts + 1):
             try:
                 testid = f"product-tabs-trigger-{CHOICE}"
@@ -279,21 +300,15 @@ def main():
                     print(f"testid: {testid}")
                 else:
                     time.sleep(0.1)  # Wait before retrying
-            
-        testid = f"date-picker-{CHOICE}-trigger"
-        if not testid:
-            raise ValueError(f"Invalid CHOICE value: {CHOICE}")
+             """
+        testid = "date-picker-0-trigger"
         max_attempts = 5
+        trigger_opened = False
         for attempt in range(1, max_attempts + 1):
             print(f"Testid for calendar trigger: {testid}")
             try:
                 # Re-locate the element inside the try block to avoid stale reference
                 trigger = WebDriverWait(driver, 10).until(
-                    EC.presence_of_element_located((By.CSS_SELECTOR, f"button[data-testid='{testid}']"))
-                )
-
-                # Wait until it's clickable
-                WebDriverWait(driver, 5).until(
                     EC.element_to_be_clickable((By.CSS_SELECTOR, f"button[data-testid='{testid}']"))
                 )
 
@@ -301,7 +316,13 @@ def main():
                 driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", trigger)
                 driver.execute_script("arguments[0].click();", trigger)
 
-                print(f"✅ Clicked the calendar trigger button for choice {CHOICE}.")
+                # In headless mode the click may happen but not open immediately; confirm expanded state.
+                WebDriverWait(driver, 5).until(
+                    lambda d: d.find_element(By.CSS_SELECTOR, f"button[data-testid='{testid}']").get_attribute("aria-expanded") == "true"
+                )
+
+                print("✅ Clicked the calendar trigger button.")
+                trigger_opened = True
                 break  # Exit loop on success
 
             except StaleElementReferenceException:
@@ -315,107 +336,160 @@ def main():
                 else:
                     time.sleep(0.2)
 
-         
-       # ...existing code...
-        max_attempts = 3
-        for attempt in range(1, max_attempts + 1):
-            try:
-                # Wait for the calendar container to appear
-                cal_container_testid = f"date-picker-{CHOICE}-content"
-                WebDriverWait(driver, 10).until(
-                    EC.visibility_of_element_located((By.CSS_SELECTOR, f"[data-testid='{cal_container_testid}']")))
-                print("✅ Calendar container appeared.")
-                break  # Exit loop on success
-            except Exception as e:
-                print(f"⚠️ Attempt {attempt}/{max_attempts} failed - Calendar container did not appear: {e}")
-                if attempt == max_attempts:
-                    print("❌ All attempts to find calendar container failed.")
-                else:
-                    time.sleep(0.1)  # Wait before retrying
-       
-        target_testid = f"date-picker-{CHOICE}-calendar-day-{bk_date.replace('-', '-')}"
-        target_selector = f"button[data-testid='{target_testid}']"
-        current_date = datetime.now()
-        m = current_date.month
-        
-        max_attempts = 3
-        for attempt in range(1, max_attempts + 1):
-            try:    
-                if m != datetime.now().month:
-                    print(f"Date button {target_testid} not found, navigating months...")
-                    next_btn_testid = f"date-picker-{CHOICE}-calendar-next-button"
-                    next_btn = WebDriverWait(driver, 10).until(
-                    EC.element_to_be_clickable((By.CSS_SELECTOR, f"button[data-testid='{next_btn_testid}']")))
-                    driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", next_btn)
-                    driver.execute_script("arguments[0].click();", next_btn)
-                    print("✅ Clicked next month button.")
-                    break
-                else:
-                    date_btn = WebDriverWait(driver, 10).until(
-                    EC.element_to_be_clickable((By.CSS_SELECTOR, f"button[data-testid='{target_testid}']"))
+        calendar_ready = False
+        if trigger_opened:
+            for open_attempt in range(1, 4):
+                try:
+                    # Some headless runs don't expose the old content testid; check visible day cells directly.
+                    WebDriverWait(driver, 6).until(
+                        lambda d: len(
+                            [
+                                el
+                                for el in d.find_elements(By.CSS_SELECTOR, "button[data-value][data-melt-calendar-cell]")
+                                if el.is_displayed()
+                            ]
+                        )
+                        > 0
                     )
-                    print(f"✅ Date button {target_testid} found, no need to navigate months.")
-                    break               
-            except Exception as e:
-                print(f"⚠️ Failed clicking next month button: {e}")
-                if attempt == max_attempts:
-                    print("❌ All attempts to find calendar container failed.")
-                else:
-                    time.sleep(0.1)  # Wait before retrying
-                    
-                    
-        date_button_testid = f"date-picker-{CHOICE}-calendar-day-{bk_date.replace('-', '-')}"       
+                    print(f"✅ Calendar day cells are visible (attempt {open_attempt}/3).")
+                    calendar_ready = True
+                    break
+                except Exception as e:
+                    print(f"⚠️ Calendar day cells not visible (attempt {open_attempt}/3): {e}")
+                    if open_attempt < 3:
+                        try:
+                            trigger = WebDriverWait(driver, 5).until(
+                                EC.element_to_be_clickable((By.CSS_SELECTOR, f"button[data-testid='{testid}']"))
+                            )
+                            driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", trigger)
+                            driver.execute_script("arguments[0].click();", trigger)
+                            WebDriverWait(driver, 3).until(
+                                lambda d: d.find_element(By.CSS_SELECTOR, f"button[data-testid='{testid}']").get_attribute("aria-expanded")
+                                == "true"
+                            )
+                            time.sleep(0.2)
+                        except Exception as reopen_error:
+                            print(f"⚠️ Failed to reopen calendar on retry: {reopen_error}")
+        else:
+            print("❌ Calendar trigger did not open; date selection will likely fail.")
+       
+        target_date = datetime.strptime(bk_date, "%d-%m-%Y")
+        target_testid = f"date-picker-0-calendar-day-{bk_date}"
+        target_data_value = target_date.strftime("%Y-%m-%dT00:00:00")
+        target_aria_label = (
+            f"{target_date.strftime('%A')}, {target_date.strftime('%B')} {target_date.day}, {target_date.year}"
+        )
+
+        print(f"Target calendar date testid: {target_testid}")
+        print(f"Target calendar date data-value: {target_data_value}")
+        print(f"Target calendar date aria-label: {target_aria_label}")
+
+        candidate_selectors = [
+            ("data-testid", By.CSS_SELECTOR, f"button[data-testid='{target_testid}']"),
+            ("data-value", By.CSS_SELECTOR, f"button[data-value='{target_data_value}']"),
+            ("data-value-prefix", By.CSS_SELECTOR, f"button[data-value^='{target_date.strftime('%Y-%m-%d')}']"),
+            ("aria-label", By.CSS_SELECTOR, f"button[aria-label=\"{target_aria_label}\"]"),
+        ]
+
+        clicked_date = False
         max_attempts = 3
         for attempt in range(1, max_attempts + 1):
-            try:  
-                date_btn = WebDriverWait(driver, 10).until(
-                    EC.element_to_be_clickable((By.CSS_SELECTOR, f"button[data-testid='{date_button_testid}']"))
-                )
-                driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", date_btn)
-                driver.execute_script("arguments[0].click();", date_btn)
-                print(f"✅ Clicked calendar date button {date_button_testid}.")
-                break  # Exit loop on success
-            except Exception as e:
-                print(f"⚠️ Attempt {attempt}/{max_attempts} failed to click calendar date button: {e}")
-                if attempt == max_attempts:
-                    print("❌ All attempts to click calendar date button failed.")
-                else:
-                    time.sleep(0.1)  # Wait before retrying
-        time.sleep(0.1)  # Small delay to allow slots to load
-        disabled = True 
-        max_attempts = 3
-        for attempt in range(1, max_attempts + 1):
+            if not calendar_ready:
+                try:
+                    WebDriverWait(driver, 4).until(
+                        lambda d: len(
+                            [
+                                el
+                                for el in d.find_elements(By.CSS_SELECTOR, "button[data-value][data-melt-calendar-cell]")
+                                if el.is_displayed()
+                            ]
+                        )
+                        > 0
+                    )
+                    calendar_ready = True
+                except Exception:
+                    pass
+
+            for selector_name, by, selector in candidate_selectors:
+                try:
+                    date_btn = WebDriverWait(driver, 4).until(
+                        EC.element_to_be_clickable((by, selector))
+                    )
+                    driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", date_btn)
+                    driver.execute_script("arguments[0].click();", date_btn)
+                    print(f"✅ Clicked calendar date button via {selector_name}: {selector}")
+                    clicked_date = True
+                    break
+                except Exception:
+                    continue
+
+            if clicked_date:
+                break
+
+            print(
+                f"⚠️ Attempt {attempt}/{max_attempts} failed to click calendar date button with all selectors."
+            )
+            if attempt < max_attempts:
+                try:
+                    # Re-open calendar between date attempts in headless mode.
+                    trigger = WebDriverWait(driver, 4).until(
+                        EC.element_to_be_clickable((By.CSS_SELECTOR, f"button[data-testid='{testid}']"))
+                    )
+                    driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", trigger)
+                    driver.execute_script("arguments[0].click();", trigger)
+                    time.sleep(0.2)
+                except Exception:
+                    pass
+                time.sleep(0.1)
+
+        if not clicked_date:
+            print(
+                "❌ All attempts to click calendar date button failed for data-testid, data-value, and aria-label. "
+                "Not navigating to next month by design."
+            )
+        time.sleep(0.1)  # Small delay to allow slots to start loading
+        disabled = True
+        slot_selector = "//button[starts-with(@data-testid, 'slot-list-0-slot')]"
+        print(f"slot xpath: {slot_selector}")
+
+        slot_wait_deadline = time.time() + 60
+        while time.time() < slot_wait_deadline:
             try:
-                slot_selector = f"//button[starts-with(@data-testid, 'slot-list-{CHOICE}-slot')]"
-                print(f"slot xpath: {slot_selector}")
+                slot_buttons = driver.find_elements(By.XPATH, slot_selector)
 
-                # Wait up to 10 seconds for the element to be present in the DOM and visible
-                wait = WebDriverWait(driver, 10)
-                slot_button = wait.until(EC.visibility_of_element_located((By.XPATH, slot_selector)))
+                if not slot_buttons:
+                    time.sleep(0.3)
+                    continue
 
-                if slot_button.get_attribute("disabled") is not None:
-                    print(f"⚠️ Slot button for CHOICE={CHOICE} is present but DISABLED.")
-                    disabled = True
-                    break  # Exit loop if disabled
-                else:
-                    print(f"✅ Slot button for CHOICE={CHOICE} is present and ENABLED.")
-                    # Scroll into view and click via JS to avoid interception
-                    driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", slot_button)
-                    driver.execute_script("arguments[0].click();", slot_button)
-                    print(f"🖱️ Clicked slot button for CHOICE={CHOICE}.")
+                enabled_slot = None
+                disabled_count = 0
+                for candidate in slot_buttons:
+                    try:
+                        if candidate.get_attribute("disabled") is None:
+                            enabled_slot = candidate
+                            break
+                        disabled_count += 1
+                    except StaleElementReferenceException:
+                        continue
+
+                if enabled_slot is not None:
+                    driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", enabled_slot)
+                    driver.execute_script("arguments[0].click();", enabled_slot)
+                    print("🖱️ Clicked an ENABLED slot from slot-list-0.")
                     disabled = False
-                    break  # Exit loop on success
+                    break
 
-            except TimeoutException:
-                print(f"⏳ Timeout: Slot button for CHOICE={CHOICE} did not appear within 10 seconds.")
-                if attempt == max_attempts:
-                    print(f"❌ All attempts to process slot button for CHOICE={CHOICE} failed.")
+                print(
+                    f"⏳ Found {len(slot_buttons)} slot-list-0 slot(s), all disabled ({disabled_count}). Waiting for enable..."
+                )
+                time.sleep(0.4)
+
             except Exception as e:
-                print(f"⚠️ Attempt {attempt}/{max_attempts} failed while processing slot button for CHOICE={CHOICE}: {e}")
-                if attempt == max_attempts:
-                    print(f"❌ All attempts to process slot button for CHOICE={CHOICE} failed.")
-                else:
-                    time.sleep(0.1)  # Wait before retrying
+                print(f"⚠️ Slot polling error: {e}")
+                time.sleep(0.2)
+
+        if disabled:
+            print("❌ No enabled slot found in slot-list-0 within 60 seconds.")
 
         if not disabled:
             max_attempts = 3
