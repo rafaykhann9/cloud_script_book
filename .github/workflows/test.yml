@@ -3,11 +3,11 @@ name: Run Test Script
 on:
   schedule:
     # Thursday 21:25 UTC
-    - cron: "00 20 * * 4"
+    - cron: "40 18 * * 4"
     # Sunday 19:55 UTC
-    - cron: "30 18 * * 0"
+    - cron: "20 17 * * 0"
     # Monday 08:55 UTC
-    - cron: "30 07 * * 1"
+    - cron: "20 06 * * 1"
   workflow_dispatch:   # manual trigger
 
 jobs:
