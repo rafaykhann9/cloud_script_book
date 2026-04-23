@@ -125,7 +125,7 @@ def fill_input_by_id(driver, field_id, value):
 def main():
     global driver
     try:
-        clear_selenium_stale_locks()
+        
         print("Starting Chrome WebDriver...")
         driver = webdriver.Chrome(options=options)
         driver.set_page_load_timeout(30)
