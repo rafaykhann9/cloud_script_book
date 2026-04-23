@@ -1,5 +1,6 @@
 import os
 import time
+from pathlib import Path
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -30,14 +31,30 @@ options.add_argument("--disable-dev-shm-usage")
 options.add_argument("--disable-gpu")
 options.add_argument("--window-size=1920,1080")
 
-# Selenium Manager will fetch the right driver automatically
-driver = webdriver.Chrome(options=options)
-wait = WebDriverWait(driver, 20)
+# Selenium driver is initialized in main() so startup hangs/errors are visible.
+driver = None
 
 import time
 from selenium.webdriver.common.keys import Keys
 
 import calendar
+
+
+def clear_selenium_stale_locks():
+    cache_root = Path.home() / ".cache" / "selenium"
+    if not cache_root.exists():
+        return
+
+    removed = 0
+    for lock_file in cache_root.rglob("sm.lock"):
+        try:
+            lock_file.unlink()
+            removed += 1
+        except OSError:
+            continue
+
+    if removed:
+        print(f"Removed {removed} stale Selenium lock file(s).")
 
 def is_five_days_later_target_day():
     target_date = datetime.today() + timedelta(days=5)
@@ -106,6 +123,17 @@ def fill_input_by_id(driver, field_id, value):
 
 
 def main():
+    global driver
+    try:
+        clear_selenium_stale_locks()
+        print("Starting Chrome WebDriver...")
+        driver = webdriver.Chrome(options=options)
+        driver.set_page_load_timeout(30)
+        print("Chrome WebDriver started.")
+    except Exception as e:
+        print(f"Failed to start Chrome WebDriver: {e}")
+        return
+
     valid, bk_date, CHOICE , bk_time = is_five_days_later_target_day()
     
     if not valid :
@@ -736,7 +764,8 @@ def main():
             json.dump(cookies, f) """
         print("Saved cookies to zhs_cookies.json")
         # Keep browser open for inspection if you want; otherwise quit:
-        driver.quit() 
+        if driver is not None:
+            driver.quit() 
 
 
 
