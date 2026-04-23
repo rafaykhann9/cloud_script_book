@@ -504,6 +504,10 @@ def main():
                 time.sleep(0.4)
 
             except Exception as e:
+                error_text = str(e).lower()
+                if "invalid session id" in error_text or "session deleted" in error_text:
+                    print("❌ Browser session ended during slot polling. Stopping retries.")
+                    break
                 print(f"⚠️ Slot polling error: {e}")
                 time.sleep(0.2)
 
