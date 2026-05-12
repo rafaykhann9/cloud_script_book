@@ -1,6 +1,5 @@
 import os
 import time
-from pathlib import Path
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -9,6 +8,8 @@ from selenium.webdriver import ActionChains
 from selenium.common.exceptions import StaleElementReferenceException, TimeoutException
 from datetime import datetime, timedelta
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 from dotenv import load_dotenv
 import json
 
@@ -24,12 +25,23 @@ BIRTHDATE = os.getenv("BIRTHDATE")
 
 COURSE_URL = "https://kurse.zhs-muenchen.de/de/product-offers/37019bf0-24df-4b56-8c6d-2423ea83d30a"
 
+import shutil as _shutil
+
 options = Options()
-options.add_argument("--headless=new")  # modern headless mode for newer Chrome
+# Auto-enable headless when no display is available (GitHub Actions / CI)
+if not os.environ.get("DISPLAY") and not os.environ.get("WAYLAND_DISPLAY"):
+    options.add_argument("--headless=new")
+else:
+    options.add_argument("--ozone-platform=x11")  # force X11 backend; avoids Qt/Wayland crash
 options.add_argument("--no-sandbox")
+options.add_argument("--disable-setuid-sandbox")
 options.add_argument("--disable-dev-shm-usage")
 options.add_argument("--disable-gpu")
 options.add_argument("--window-size=1920,1080")
+# Prefer real Chrome over snap Chromium (snap has sandbox conflicts with ChromeDriver)
+_chrome_bin = _shutil.which("google-chrome-stable") or _shutil.which("google-chrome")
+if _chrome_bin:
+    options.binary_location = _chrome_bin
 
 # Selenium driver is initialized in main() so startup hangs/errors are visible.
 driver = None
@@ -38,23 +50,6 @@ import time
 from selenium.webdriver.common.keys import Keys
 
 import calendar
-
-
-def clear_selenium_stale_locks():
-    cache_root = Path.home() / ".cache" / "selenium"
-    if not cache_root.exists():
-        return
-
-    removed = 0
-    for lock_file in cache_root.rglob("sm.lock"):
-        try:
-            lock_file.unlink()
-            removed += 1
-        except OSError:
-            continue
-
-    if removed:
-        print(f"Removed {removed} stale Selenium lock file(s).")
 
 def is_five_days_later_target_day():
     target_date = datetime.today() + timedelta(days=5)
@@ -127,7 +122,8 @@ def main():
     try:
         
         print("Starting Chrome WebDriver...")
-        driver = webdriver.Chrome(options=options)
+        service = Service(ChromeDriverManager().install())
+        driver = webdriver.Chrome(service=service, options=options)
         driver.set_page_load_timeout(30)
         print("Chrome WebDriver started.")
     except Exception as e:

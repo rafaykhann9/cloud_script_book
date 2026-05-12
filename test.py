@@ -8,6 +8,8 @@ from selenium.webdriver import ActionChains
 from selenium.common.exceptions import StaleElementReferenceException, TimeoutException
 from datetime import datetime, timedelta
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 from dotenv import load_dotenv
 import json
 
@@ -23,12 +25,23 @@ BIRTHDATE = os.getenv("BIRTHDATE")
 
 COURSE_URL = "https://kurse.zhs-muenchen.de/de/product-offers/37019bf0-24df-4b56-8c6d-2423ea83d30a"
 
+import shutil as _shutil
+
 options = Options()
-options.add_argument("--headless=new")  # modern headless mode for newer Chrome
+# Auto-enable headless when no display is available (GitHub Actions / CI)
+if not os.environ.get("DISPLAY") and not os.environ.get("WAYLAND_DISPLAY"):
+    options.add_argument("--headless=new")
+else:
+    options.add_argument("--ozone-platform=x11")  # force X11 backend; avoids Qt/Wayland crash
 options.add_argument("--no-sandbox")
+options.add_argument("--disable-setuid-sandbox")
 options.add_argument("--disable-dev-shm-usage")
 options.add_argument("--disable-gpu")
 options.add_argument("--window-size=1920,1080")
+# Prefer real Chrome over snap Chromium (snap has sandbox conflicts with ChromeDriver)
+_chrome_bin = _shutil.which("google-chrome-stable") or _shutil.which("google-chrome")
+if _chrome_bin:
+    options.binary_location = _chrome_bin
 
 # Selenium driver is initialized in main() so startup hangs/errors are visible.
 driver = None
@@ -108,22 +121,25 @@ def main():
     global driver
     try:
         print("Starting Chrome WebDriver...")
-        driver = webdriver.Chrome(options=options)
+        service = Service(ChromeDriverManager().install())
+        driver = webdriver.Chrome(service=service, options=options)
         driver.set_page_load_timeout(30)
         print("Chrome WebDriver started.")
     except Exception as e:
         print(f"Failed to start Chrome WebDriver: {e}")
         return
 
-    valid, bk_date, CHOICE , bk_time = is_five_days_later_target_day()
-    
-    if not valid :
-        #exit the script if today is not the booking day
-        #quit_msg = input("Today is not a booking day or the time has passed. Press Enter to exit...")
-        print("Today is not a booking day or the time has passed. Exiting...")
-        driver.quit()
-        return
-    # Calculate sleep time until 2 seconds before bk_time
+    valid, bk_date, CHOICE, bk_time = is_five_days_later_target_day()
+
+    if not valid:
+        # Uncomment the block below to exit on non-booking days (production behaviour).
+        # For testing, fall through with dummy values so the full flow can be exercised.
+        # driver.quit(); return
+        _test_target = datetime.today() + timedelta(days=5)
+        bk_date = f"{_test_target.day}-{_test_target.month}-{_test_target.year}"
+        bk_time = datetime.now().time()   # already past → no sleeping
+        CHOICE = "0"
+        print(f"Not a booking day – test mode using date {bk_date}")
     
     
     try:
@@ -262,10 +278,6 @@ def main():
         # Optional: wait for navigation or content to load
             time.sleep(2)
 
-        ## wait unitl bk_time - 2 seconds
-        
-        now = datetime.now()
-        target_datetime = datetime.combine(now.date(), bk_time)
         
         max_attempts = 3
         for attempt in range(1, max_attempts + 1):
