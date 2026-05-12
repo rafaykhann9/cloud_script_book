@@ -359,7 +359,7 @@ def main():
                 driver.execute_script("arguments[0].click();", trigger)
 
                 # In headless mode the click may happen but not open immediately; confirm expanded state.
-                WebDriverWait(driver, 5).until(
+                WebDriverWait(driver, 5, ignored_exceptions=[StaleElementReferenceException]).until(
                     lambda d: d.find_element(By.CSS_SELECTOR, f"button[data-testid='{testid}']").get_attribute("aria-expanded") == "true"
                 )
 
@@ -383,15 +383,11 @@ def main():
             for open_attempt in range(1, 4):
                 try:
                     # Some headless runs don't expose the old content testid; check visible day cells directly.
-                    WebDriverWait(driver, 6).until(
-                        lambda d: len(
-                            [
-                                el
-                                for el in d.find_elements(By.CSS_SELECTOR, "button[data-value][data-melt-calendar-cell]")
-                                if el.is_displayed()
-                            ]
+                    WebDriverWait(driver, 6, ignored_exceptions=[StaleElementReferenceException]).until(
+                        lambda d: any(
+                            el.is_displayed()
+                            for el in d.find_elements(By.CSS_SELECTOR, "button[data-value][data-melt-calendar-cell]")
                         )
-                        > 0
                     )
                     print(f"✅ Calendar day cells are visible (attempt {open_attempt}/3).")
                     calendar_ready = True
@@ -405,9 +401,8 @@ def main():
                             )
                             driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", trigger)
                             driver.execute_script("arguments[0].click();", trigger)
-                            WebDriverWait(driver, 3).until(
-                                lambda d: d.find_element(By.CSS_SELECTOR, f"button[data-testid='{testid}']").get_attribute("aria-expanded")
-                                == "true"
+                            WebDriverWait(driver, 3, ignored_exceptions=[StaleElementReferenceException]).until(
+                                lambda d: d.find_element(By.CSS_SELECTOR, f"button[data-testid='{testid}']").get_attribute("aria-expanded") == "true"
                             )
                             time.sleep(0.2)
                         except Exception as reopen_error:
